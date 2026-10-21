@@ -1,0 +1,490 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Mobius Service</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Sora:wght@600;700&display=swap">
+<style>
+/* Layout: KPI header, site detail band, then filters | energy flow | hourly chart, with the 30-day trend full width underneath. */
+:root{
+  --bg:#eaf0f2; --surface:#ffffff; --ink:#12303a; --muted:#5b727c; --line:#d3dfe3; --chip:#e3eaed;
+  --brand:#0b5a8f; --on-brand:#ffffff;
+  --mob:#0e9a55; --pln:#2563d8; --load:#d99200; --load-ink:#9a6700;
+  --font-display:'Sora','Segoe UI',system-ui,sans-serif;
+  --font-body:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0c161b; --surface:#13232a; --ink:#e4eff2; --muted:#8fa7b0; --line:#25393f; --chip:#21343b;
+    --brand:#6db6f2; --on-brand:#0a1a22;
+    --mob:#36d283; --pln:#6aa2ff; --load:#f3b53a; --load-ink:#f3b53a;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0c161b; --surface:#13232a; --ink:#e4eff2; --muted:#8fa7b0; --line:#25393f; --chip:#21343b;
+  --brand:#6db6f2; --on-brand:#0a1a22;
+  --mob:#36d283; --pln:#6aa2ff; --load:#f3b53a; --load-ink:#f3b53a;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--ink); font-family:var(--font-body); font-size:14px; line-height:1.4;
+  padding-block:16px;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+}
+.app{max-width:1500px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.num{font-variant-numeric:tabular-nums}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px 16px;min-width:0}
+.card h2{margin:0 0 10px;font:600 11.5px/1.2 var(--font-display);letter-spacing:.07em;text-transform:uppercase;color:var(--brand)}
+
+/* header */
+.top{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px 20px;align-items:center}
+.brand h1{margin:0;font:700 clamp(26px,3.4vw,38px)/1 var(--font-display);letter-spacing:.01em;color:var(--brand)}
+.brand p{margin:6px 0 0;color:var(--muted);font-size:15px}
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.kpi{display:block;padding:2px 0 2px 12px;border-left:1px solid var(--line);min-width:0}
+.kl{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;line-height:1.3;color:var(--muted)}
+.kv{font:600 clamp(16px,1.7vw,21px)/1.25 var(--font-display);white-space:nowrap;font-variant-numeric:tabular-nums}
+.kv small{font:500 .6em var(--font-body);margin-left:2px}
+.kpi.mob .kv{color:var(--mob)} .kpi.pln .kv{color:var(--pln)} .kpi.load .kv{color:var(--load-ink)} .kpi.brand .kv{color:var(--brand)}
+.cutoff{font-size:12px;color:var(--muted);white-space:nowrap}
+.cutoff b{display:block;color:var(--ink);font-weight:600;font-size:13px}
+
+.ico{fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+
+/* site detail band */
+.site{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px 28px;align-items:center}
+.site .sid{font:700 22px/1.1 var(--font-display);color:var(--ink)}
+.site .sub{font-size:12px;color:var(--muted);margin-top:4px}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px 18px}
+.field dt{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.field dd{margin:3px 0 0;font-weight:500;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.pill{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:600}
+.pill.done{background:color-mix(in srgb,var(--mob) 16%,transparent);color:var(--mob)}
+.pill.prog{background:color-mix(in srgb,var(--load) 18%,transparent);color:var(--load-ink)}
+
+/* main grid */
+.grid{display:grid;gap:14px;grid-template-columns:230px minmax(300px,0.9fr) minmax(0,1.7fr);
+  grid-template-areas:"f e p" "t t t"}
+.filters{grid-area:f} .flow{grid-area:e} .perf{grid-area:p} .trend{grid-area:t}
+.fgroup+.fgroup{margin-top:16px}
+.fhead{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:5px;margin-bottom:8px}
+.fhead span{font-weight:600;font-size:13px}
+.clear{background:none;border:0;color:var(--muted);font:500 12px var(--font-body);cursor:pointer;padding:2px 4px;border-radius:4px}
+.clear:hover{color:var(--ink)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips.col{flex-direction:column}
+.chip{background:var(--chip);color:var(--ink);border:0;border-radius:6px;padding:6px 10px;font:500 13px var(--font-body);cursor:pointer;text-align:left}
+.chip[aria-pressed="true"]{background:var(--brand);color:var(--on-brand)}
+.chip:focus-visible,.clear:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+
+.flow{display:flex;flex-direction:column}
+.flow svg{width:100%;height:auto;display:block}
+.eq{margin-top:auto;border-top:1px solid var(--line);padding-top:10px;font-size:12.5px;color:var(--muted)}
+.eq b{color:var(--ink);font-weight:600}
+.eq .l{color:var(--load-ink)} .eq .p{color:var(--pln)} .eq .m{color:var(--mob)}
+.dash{stroke-dasharray:6 5}
+
+.legend{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12px;color:var(--muted);margin:-2px 0 6px}
+.legend i{display:inline-block;width:18px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.scroll{overflow-x:auto}
+.chartwrap{position:relative;min-width:600px}
+.chartwrap svg{display:block;width:100%;height:auto}
+svg text{font-family:var(--font-body);fill:var(--muted);font-size:11px}
+svg .grid line{stroke:var(--line)}
+.tip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:12px;white-space:nowrap;z-index:2}
+.tip b{display:block;margin-bottom:3px}
+.empty{padding:28px 8px;color:var(--muted);text-align:center}
+
+/* trend */
+.trendhead{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;margin-bottom:8px}
+.trendhead h2{margin:0}
+.mini{display:grid;grid-template-columns:repeat(5,minmax(120px,1fr));gap:8px;flex:1 1 640px;max-width:900px}
+.mini .kpi{padding:2px 0 2px 10px}
+.mini .kv{font-size:15px}
+.mini .kl{font-size:9px}
+.trendscroll{overflow-x:auto;padding-bottom:4px}
+.trendinner{width:1430px}
+.trendinner svg{display:block}
+table.dt{border-collapse:collapse;table-layout:fixed;width:1430px;font-size:11px;font-variant-numeric:tabular-nums}
+.dt th,.dt td{width:44px;text-align:center;padding:4px 0;border-top:1px solid var(--line);white-space:nowrap}
+.dt th:first-child,.dt td:first-child{width:110px;text-align:left;padding-left:8px;position:sticky;left:0;background:var(--surface);z-index:1;font-weight:600;color:var(--muted);box-shadow:1px 0 0 var(--line)}
+.dt thead th{border-top:0;color:var(--muted);font-weight:500}
+.dt .mo th{font-size:10px;letter-spacing:.05em;text-transform:uppercase;padding-bottom:0;color:var(--brand);font-weight:600}
+.dt .sw{display:inline-block;width:12px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle}
+.dt td.dip{color:var(--load-ink);font-weight:600}
+.foot{font-size:12px;color:var(--muted);margin:2px 2px 0}
+
+@media (max-width:1100px){
+  .top{grid-template-columns:minmax(0,1fr) auto}
+  .kpis{grid-column:1 / -1;grid-row:2;grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+  .grid{grid-template-columns:230px minmax(0,1fr);grid-template-areas:"f e" "p p" "t t"}
+  .mini{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+}
+@media (max-width:700px){
+  .top{grid-template-columns:1fr}
+  .kpis{grid-row:auto}
+  .grid{grid-template-columns:minmax(0,1fr);grid-template-areas:"f" "e" "p" "t"}
+  .site{grid-template-columns:minmax(0,1fr)}
+  .cutoff{white-space:normal}
+}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></symbol>
+    <symbol id="i-pylon" viewBox="0 0 24 24"><path d="M12 2 7 22M12 2l5 20M9.2 9h5.6M8 14h8M5 22h14M7 22l7-8M17 22l-7-8"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11 12 3l9 8M5 9.5V21h14V9.5M10 21v-6h4v6"/></symbol>
+    <symbol id="i-gauge" viewBox="0 0 24 24"><path d="M4 17a8 8 0 1 1 16 0M12 17l4-5M7 17h.01M17 17h.01M12 9v.01"/></symbol>
+    <symbol id="i-coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 8.5v7M9 8.5h3.2a2.2 2.2 0 0 1 0 4.4H9M12 13l3 2.5"/></symbol>
+    <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></symbol>
+  </defs>
+</svg>
+
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <h1>MOBIUS SERVICE</h1>
+      <p>Power Saving Monitoring Dashboard</p>
+    </div>
+    <div class="kpis" id="kpis"></div>
+    <div class="cutoff">
+      <div>Update Cut Off<b>21 Oct 2026 | 17:00</b></div>
+    </div>
+  </header>
+
+  <section class="card site" id="site" aria-label="Site detail"></section>
+
+  <main class="grid">
+    <aside class="card filters" id="filters"></aside>
+
+    <section class="card flow">
+      <h2>Energy Flow</h2>
+      <div id="flow"></div>
+      <div class="eq" id="eq"></div>
+    </section>
+
+    <section class="card perf">
+      <h2>Power Performance Today</h2>
+      <div class="legend">
+        <span><i style="background:var(--mob)"></i>MOBIUS (kWh)</span>
+        <span><i style="background:var(--pln)"></i>PLN (kWh)</span>
+        <span><i style="background:var(--load)"></i>LOAD (kWh)</span>
+      </div>
+      <div class="scroll"><div class="chartwrap" id="hourly"></div></div>
+    </section>
+
+    <section class="card trend">
+      <div class="trendhead">
+        <h2>Trend Power Performance Last 30 Days</h2>
+        <div class="mini" id="mini"></div>
+      </div>
+      <div class="trendscroll"><div class="trendinner" id="trend"></div></div>
+      <p class="foot">Bars show Mobius contribution (share of load supplied by Mobius). Saving is estimated at the PLN tariff of Rp 1.444,70 per kWh. Window: 21 Sep to 20 Oct 2026, full days only.</p>
+    </section>
+  </main>
+</div>
+
+<script>
+(function(){
+'use strict';
+var TARIFF=1444.7, N_TODAY=18;
+var MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+var DIPS=[3,24];
+
+var SITES=[
+ {id:'CLG002',tenant:'Tsel', status:'Done',       area:'Cilegon, Banten',            unit:'MBX-2002',rated:5.0,scale:1.00,eff:.17},
+ {id:'MGW006',tenant:'Tsel', status:'Done',       area:'Magelang, Jawa Tengah',      unit:'MBX-3006',rated:5.5,scale:1.12,eff:.18},
+ {id:'PWK002',tenant:'Tsel', status:'Done',       area:'Purwakarta, Jawa Barat',     unit:'MBX-2102',rated:4.5,scale:.92, eff:.16},
+ {id:'TNG095',tenant:'Tsel', status:'On Progress',area:'Tangerang, Banten',          unit:'MBX-4095',rated:6.0,scale:1.28,eff:.15},
+ {id:'BKS031',tenant:'IOH',  status:'Done',       area:'Bekasi, Jawa Barat',         unit:'MBX-1031',rated:5.0,scale:1.05,eff:.17},
+ {id:'SMG118',tenant:'IOH',  status:'On Progress',area:'Semarang, Jawa Tengah',      unit:'MBX-1118',rated:4.0,scale:.86, eff:.15},
+ {id:'KRW007',tenant:'XLSMA',status:'Done',       area:'Karawang, Jawa Barat',       unit:'MBX-5007',rated:5.5,scale:1.18,eff:.19},
+ {id:'BDG204',tenant:'XLSMA',status:'Done',       area:'Bandung, Jawa Barat',        unit:'MBX-5204',rated:4.5,scale:.95, eff:.16}
+];
+var TENANTS=['IOH','Tsel','XLSMA'], STATUSES=['Done','On Progress'];
+var state={tenant:new Set(['Tsel']),status:new Set(['Done']),site:new Set(['MGW006'])};
+
+var days=[];
+for(var i=0;i<30;i++) days.push(new Date(Date.UTC(2026,8,21+i)));
+
+/* ---------- helpers ---------- */
+function fmt(n,d){ if(d===undefined) d=2; return n.toLocaleString('id-ID',{minimumFractionDigits:d,maximumFractionDigits:d}); }
+function rp(n){ return 'Rp '+Math.round(n).toLocaleString('id-ID'); }
+function pct(n,d){ return fmt(n*100,d===undefined?2:d)+'%'; }
+function hash(s){ var h=2166136261; for(var i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619);} return h>>>0; }
+function rng(seed){ return function(){ seed|=0; seed=seed+0x6D2B79F5|0; var t=Math.imul(seed^seed>>>15,1|seed); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function nice(max){
+  var steps=[1,2,5,10,20,25,50,100,200,250,500,1000,2000,2500,5000];
+  var step=steps[steps.length-1];
+  for(var i=0;i<steps.length;i++){ if(max/steps[i]<=6){ step=steps[i]; break; } }
+  return {top:Math.ceil(max/step)*step, step:step};
+}
+function niceSmall(max){
+  var steps=[.5,1,2,2.5,5,10,20,50];
+  var step=steps[steps.length-1];
+  for(var i=0;i<steps.length;i++){ if(max/steps[i]<=6){ step=steps[i]; break; } }
+  return {top:Math.ceil(max/step)*step, step:step};
+}
+function el(id){ return document.getElementById(id); }
+
+/* ---------- data model: load = PLN + Mobius ---------- */
+function hourly(site,key,hours){
+  var r=rng(hash(site.id+key)), out=[];
+  for(var h=0;h<hours;h++){
+    var shape=2.6+0.9*Math.max(0,Math.sin(Math.PI*(h-5)/16));
+    var load=site.scale*shape*(0.96+0.08*r());
+    var m=load*site.eff*(0.88+0.24*r());
+    out.push({load:load,mobius:m,pln:load-m});
+  }
+  return out;
+}
+function daySum(site,i){
+  var r=rng(hash(site.id+'day'+i));
+  var dip=DIPS.indexOf(i)>=0;
+  var f=dip?0.58+0.06*r():0.95+0.1*r();
+  var e=dip?0.75:1, load=0, mob=0;
+  hourly(site,'d'+i,24).forEach(function(p){ load+=p.load*f; mob+=p.mobius*f*e; });
+  return {load:load,mobius:mob,pln:load-mob};
+}
+function sum(arr){ return arr.reduce(function(a,p){ return {load:a.load+p.load,mobius:a.mobius+p.mobius,pln:a.pln+p.pln}; },{load:0,mobius:0,pln:0}); }
+function todaySeries(sites){
+  var a=[]; for(var i=0;i<N_TODAY;i++) a.push({load:0,mobius:0,pln:0});
+  sites.forEach(function(s){ hourly(s,'2026-10-21',N_TODAY).forEach(function(p,i){ a[i].load+=p.load; a[i].mobius+=p.mobius; a[i].pln+=p.pln; }); });
+  return a;
+}
+function trendSeries(sites){
+  return days.map(function(_,i){
+    var a={load:0,mobius:0,pln:0};
+    sites.forEach(function(s){ var d=daySum(s,i); a.load+=d.load; a.mobius+=d.mobius; a.pln+=d.pln; });
+    return a;
+  });
+}
+
+/* ---------- filters ---------- */
+function visibleSites(){
+  return SITES.filter(function(s){
+    return (!state.tenant.size||state.tenant.has(s.tenant)) && (!state.status.size||state.status.has(s.status));
+  });
+}
+function effectiveSites(){
+  var vis=visibleSites();
+  var sel=vis.filter(function(s){ return state.site.has(s.id); });
+  return sel.length?sel:vis;
+}
+function chips(group,items,col){
+  return '<div class="chips'+(col?' col':'')+'">'+items.map(function(v){
+    var on=state[group].has(v);
+    return '<button class="chip" type="button" data-g="'+group+'" data-v="'+v+'" aria-pressed="'+on+'">'+v+'</button>';
+  }).join('')+'</div>';
+}
+function renderFilters(){
+  var vis=visibleSites().map(function(s){return s.id;});
+  el('filters').innerHTML=
+    '<div class="fgroup"><div class="fhead"><span>Tenant</span><button class="clear" type="button" data-clear="tenant">Clear</button></div>'+chips('tenant',TENANTS)+'</div>'+
+    '<div class="fgroup"><div class="fhead"><span>Status Progress</span><button class="clear" type="button" data-clear="status">Clear</button></div>'+chips('status',STATUSES)+'</div>'+
+    '<div class="fgroup"><div class="fhead"><span>Site</span><button class="clear" type="button" data-clear="site">Clear</button></div>'+
+    (vis.length?chips('site',vis,true):'<p class="foot">No site matches this tenant and status.</p>')+'</div>';
+}
+
+/* ---------- KPI tiles ---------- */
+function kpi(cls,icon,label,value,tip){
+  return '<div class="kpi '+cls+'" title="'+tip+'"><div class="kl">'+label+'</div><div class="kv">'+value+'</div></div>';
+}
+function kwh(v){ return fmt(v)+' <small>kWh</small>'; }
+function renderKpis(t){
+  el('kpis').innerHTML=
+    kpi('mob','i-bolt','Mobius Energy Today',kwh(t.mobius),'Energy generated by Mobius on top of the PLN supply')+
+    kpi('pln','i-pylon','PLN Energy Today',kwh(t.pln),'Energy actually drawn from PLN')+
+    kpi('load','i-home','Load Energy Today',kwh(t.load),'Energy the site consumed (PLN + Mobius)')+
+    kpi('mob','i-gauge','Mobius Contribution',pct(t.mobius/t.load),'Mobius energy as a share of load')+
+    kpi('brand','i-coin','Est. Saving Today',rp(t.mobius*TARIFF),'Mobius energy times the PLN tariff');
+}
+
+/* ---------- site detail ---------- */
+function field(k,v){ return '<div class="field"><dt>'+k+'</dt><dd>'+v+'</dd></div>'; }
+function statusPill(s){ return '<span class="pill '+(s==='Done'?'done':'prog')+'">'+s+'</span>'; }
+function renderSite(sites){
+  var box=el('site');
+  if(!sites.length){ box.innerHTML='<div class="empty" style="grid-column:1/-1">No site matches this filter. Clear a tenant or status to see sites.</div>'; return; }
+  var rated=sites.reduce(function(a,s){return a+s.rated;},0);
+  if(sites.length===1){
+    var s=sites[0];
+    box.innerHTML='<div><div class="sid">'+s.id+'</div><div class="sub">Site detail</div></div><dl class="fields" style="margin:0">'+
+      field('Tenant',s.tenant)+field('Location',s.area)+field('Status',statusPill(s.status))+
+      field('Mobius unit',s.unit)+field('Rated load',fmt(s.rated,1)+' kW')+field('Load today',fmt(sum(hourly(s,'2026-10-21',N_TODAY)).load)+' kWh')+'</dl>';
+  } else {
+    var tn=[],done=0;
+    sites.forEach(function(s){ if(tn.indexOf(s.tenant)<0) tn.push(s.tenant); if(s.status==='Done') done++; });
+    box.innerHTML='<div><div class="sid">'+sites.length+' sites</div><div class="sub">Site detail</div></div><dl class="fields" style="margin:0">'+
+      field('Sites',sites.map(function(s){return s.id;}).join(', '))+field('Tenant',tn.join(', '))+
+      field('Status',done+' Done, '+(sites.length-done)+' On Progress')+
+      field('Mobius units',sites.length)+field('Rated load',fmt(rated,1)+' kW')+'</dl>';
+  }
+}
+
+/* ---------- energy flow ---------- */
+function renderFlow(t,last){
+  var boost=t.mobius/t.pln;
+  el('flow').innerHTML=
+  '<svg viewBox="0 0 560 250" role="img" aria-label="Energy flow from PLN through Mobius to the load">'+
+  '<defs>'+
+   '<marker id="ahp" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1 9 5 0 9z" style="fill:var(--pln)"/></marker>'+
+   '<marker id="ahm" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1 9 5 0 9z" style="fill:var(--mob)"/></marker>'+
+  '</defs>'+
+  '<circle cx="76" cy="112" r="46" style="fill:var(--surface);stroke:var(--pln);stroke-width:1.5"/>'+
+  '<text x="76" y="117" text-anchor="middle" style="fill:var(--ink);font-weight:600;font-size:13px;letter-spacing:.08em">PLN</text>'+
+  '<line class="dash" x1="128" y1="112" x2="222" y2="112" style="stroke:var(--pln);stroke-width:2.5" marker-end="url(#ahp)"/>'+
+  '<text x="175" y="100" text-anchor="middle">input</text>'+
+  '<rect x="228" y="66" width="104" height="92" rx="14" style="fill:var(--surface);stroke:var(--mob);stroke-width:1.5"/>'+
+  '<text x="280" y="106" text-anchor="middle" style="fill:var(--ink);font-weight:600;font-size:13px;letter-spacing:.08em">MOBIUS</text>'+
+  '<text x="280" y="128" text-anchor="middle" style="fill:var(--mob);font-weight:600;font-size:13px">+'+fmt(t.mobius)+' kWh</text>'+
+  '<line class="dash" x1="338" y1="112" x2="432" y2="112" style="stroke:var(--mob);stroke-width:2.5" marker-end="url(#ahm)"/>'+
+  '<text x="385" y="100" text-anchor="middle">boosted</text>'+
+  '<circle cx="484" cy="112" r="46" style="fill:var(--surface);stroke:var(--load);stroke-width:1.5"/>'+
+  '<text x="484" y="117" text-anchor="middle" style="fill:var(--ink);font-weight:600;font-size:13px;letter-spacing:.08em">LOAD</text>'+
+  '<text x="76" y="186" text-anchor="middle" style="fill:var(--pln);font-weight:600;font-size:13px">'+fmt(t.pln)+' kWh</text>'+
+  '<text x="484" y="186" text-anchor="middle" style="fill:var(--load-ink);font-weight:600;font-size:13px">'+fmt(t.load)+' kWh</text>'+
+  '<text x="280" y="190" text-anchor="middle">PLN input lifted by '+pct(boost,1)+'</text>'+
+  '</svg>';
+  el('eq').innerHTML='Latest hour (17:00): <b class="l">Load '+fmt(last.load)+' kW</b> = <b class="p">PLN '+fmt(last.pln)+' kW</b> + <b class="m">Mobius '+fmt(last.mobius)+' kW</b>. Mobius lifts the PLN supply to meet the full load.';
+}
+
+/* ---------- hourly chart ---------- */
+var hourlyData=[];
+function path(pts){ return pts.map(function(p,i){ return (i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1); }).join(' '); }
+function hh(i){ return (i<10?'0':'')+i+':00'; }
+function renderHourly(series){
+  hourlyData=series;
+  var W=900,H=320,m={l:46,r:62,t:16,b:34};
+  var pw=W-m.l-m.r, ph=H-m.t-m.b;
+  var mx=Math.max.apply(null,series.map(function(p){return p.load;}));
+  var sc=niceSmall(mx*1.1);
+  function x(i){ return m.l+i*pw/(series.length-1); }
+  function y(v){ return m.t+ph*(1-v/sc.top); }
+  var g='',k;
+  for(k=0;k<=sc.top+1e-9;k+=sc.step){
+    g+='<line x1="'+m.l+'" x2="'+(W-m.r)+'" y1="'+y(k)+'" y2="'+y(k)+'"/>';
+  }
+  var lab='';
+  for(k=0;k<=sc.top+1e-9;k+=sc.step){ lab+='<text x="'+(m.l-8)+'" y="'+(y(k)+4)+'" text-anchor="end">'+fmt(k,sc.step<1?1:0)+'</text>'; }
+  series.forEach(function(_,i){ lab+='<text x="'+x(i)+'" y="'+(H-12)+'" text-anchor="middle">'+hh(i)+'</text>'; });
+  var defs=[['load','--load'],['pln','--pln'],['mobius','--mob']], lines='', ends='';
+  defs.forEach(function(d){
+    var pts=series.map(function(p,i){ return [x(i),y(p[d[0]])]; });
+    lines+='<path d="'+path(pts)+'" fill="none" style="stroke:var('+d[1]+');stroke-width:2.4;stroke-linejoin:round"/>';
+    var lp=pts[pts.length-1], lv=series[series.length-1][d[0]];
+    ends+='<circle cx="'+lp[0]+'" cy="'+lp[1]+'" r="5" style="fill:var('+d[1]+')"/>'+
+          '<text x="'+(lp[0]+10)+'" y="'+(lp[1]+4)+'" style="fill:var('+d[1]+');font-weight:600;font-size:12px">'+fmt(lv)+'</text>';
+  });
+  el('hourly').innerHTML='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Hourly Mobius, PLN and load energy today">'+
+    '<g class="grid">'+g+'</g>'+lab+lines+ends+
+    '<line id="hv" y1="'+m.t+'" y2="'+(m.t+ph)+'" style="stroke:var(--muted);stroke-dasharray:3 3" visibility="hidden"/>'+
+    '<rect id="hit" x="'+m.l+'" y="'+m.t+'" width="'+pw+'" height="'+ph+'" fill="transparent"/></svg>'+
+    '<div class="tip" id="tip" hidden></div>';
+  var wrap=el('hourly'), hit=el('hit'), hv=el('hv'), tip=el('tip');
+  function move(ev){
+    var r=wrap.getBoundingClientRect(), scale=r.width/W;
+    var px=(ev.clientX-r.left)/scale;
+    var i=Math.round((px-m.l)/(pw/(series.length-1)));
+    i=Math.max(0,Math.min(series.length-1,i));
+    var p=series[i];
+    hv.setAttribute('x1',x(i)); hv.setAttribute('x2',x(i)); hv.setAttribute('visibility','visible');
+    tip.innerHTML='<b>'+hh(i)+'</b><span style="color:var(--load-ink)">Load '+fmt(p.load)+' kWh</span><br><span style="color:var(--pln)">PLN '+fmt(p.pln)+' kWh</span><br><span style="color:var(--mob)">Mobius '+fmt(p.mobius)+' kWh</span>';
+    tip.hidden=false;
+    var tx=x(i)*scale+14; if(tx+150>r.width) tx=x(i)*scale-150;
+    tip.style.left=Math.max(4,tx)+'px'; tip.style.top='10px';
+  }
+  hit.addEventListener('pointermove',move);
+  hit.addEventListener('pointerdown',move);
+  hit.addEventListener('pointerleave',function(){ hv.setAttribute('visibility','hidden'); tip.hidden=true; });
+}
+
+/* ---------- 30 day trend ---------- */
+function renderTrend(cols){
+  var CW=44,L=110,T=22,B=6,H=300,W=L+CW*30;
+  var mx=Math.max.apply(null,cols.map(function(c){return c.load;}));
+  var sc=nice(mx*1.08);
+  var ph=H-T-B;
+  function y(v){ return T+ph*(1-v/sc.top); }
+  function cx(i){ return L+i*CW+CW/2; }
+  var g='',lab='',k;
+  for(k=0;k<=sc.top+1e-9;k+=sc.step){
+    g+='<line x1="'+L+'" x2="'+W+'" y1="'+y(k)+'" y2="'+y(k)+'"/>';
+    lab+='<text x="'+(L-10)+'" y="'+(y(k)+4)+'" text-anchor="end">'+fmt(k,0)+'</text>';
+  }
+  var bars='',hits='';
+  cols.forEach(function(c,i){
+    var p=c.mobius/c.load, bh=ph*Math.min(p/0.4,1);
+    bars+='<rect x="'+(L+i*CW+7)+'" y="'+(T+ph-bh)+'" width="30" height="'+bh+'" rx="2" style="fill:var(--mob);fill-opacity:.13"/>'+
+          '<text x="'+cx(i)+'" y="'+(T+ph-bh-5)+'" text-anchor="middle" style="fill:var(--mob);font-weight:600;font-size:10.5px">'+fmt(p*100,0)+'%</text>';
+    var d=days[i];
+    hits+='<rect x="'+(L+i*CW)+'" y="'+T+'" width="'+CW+'" height="'+ph+'" fill="transparent"><title>'+d.getUTCDate()+' '+MONTHS[d.getUTCMonth()]+': Load '+fmt(c.load,1)+' kWh, PLN '+fmt(c.pln,1)+' kWh, Mobius '+fmt(c.mobius,1)+' kWh ('+fmt(p*100,1)+'%)</title></rect>';
+  });
+  var lines='';
+  [['load','--load'],['pln','--pln'],['mobius','--mob']].forEach(function(d){
+    var pts=cols.map(function(c,i){ return [cx(i),y(c[d[0]])]; });
+    lines+='<path d="'+path(pts)+'" fill="none" style="stroke:var('+d[1]+');stroke-width:2.4;stroke-linejoin:round"/>';
+  });
+  var svg='<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="30 day trend of Mobius, PLN and load energy">'+
+    '<g class="grid">'+g+'</g>'+lab+
+    '<text x="'+(L-10)+'" y="12" text-anchor="end" style="font-size:10px">kWh / day</text>'+
+    bars+lines+hits+'</svg>';
+
+  var head='<thead><tr class="mo"><th></th>'+days.map(function(d,i){
+    return '<th>'+((i===0||d.getUTCDate()===1)?MONTHS[d.getUTCMonth()]:'')+'</th>'; }).join('')+'</tr>'+
+    '<tr><th>Date</th>'+days.map(function(d){ return '<th>'+d.getUTCDate()+'</th>'; }).join('')+'</tr></thead>';
+  var rows=[
+    ['Mobius Contr.','--mob',function(c){return fmt(c.mobius/c.load*100,0)+'%';}],
+    ['MOBIUS (kWh)','--mob',function(c){return fmt(c.mobius,1);}],
+    ['PLN (kWh)','--pln',function(c){return fmt(c.pln,1);}],
+    ['LOAD (kWh)','--load',function(c){return fmt(c.load,1);}],
+    ['Est. Saving','--brand',function(c){return fmt(c.mobius*TARIFF/1000,1)+'k';}]
+  ];
+  var body='<tbody>'+rows.map(function(r){
+    return '<tr><td><span class="sw" style="background:var('+r[1]+')"></span>'+r[0]+'</td>'+
+      cols.map(function(c,i){ return '<td'+(DIPS.indexOf(i)>=0?' class="dip"':'')+'>'+r[2](c)+'</td>'; }).join('')+'</tr>';
+  }).join('')+'</tbody>';
+  el('trend').innerHTML=svg+'<table class="dt">'+head+body+'</table>';
+
+  var t=sum(cols);
+  el('mini').innerHTML=
+    kpi('mob','i-bolt','Total Mobius Energy',kwh(t.mobius),'Last 30 days')+
+    kpi('pln','i-pylon','Total PLN Energy',kwh(t.pln),'Last 30 days')+
+    kpi('load','i-home','Total Load Energy',kwh(t.load),'Last 30 days')+
+    kpi('mob','i-gauge','Mobius Contribution',pct(t.mobius/t.load),'Last 30 days')+
+    kpi('brand','i-coin','Est. Saving',rp(t.mobius*TARIFF),'Last 30 days');
+}
+
+/* ---------- render ---------- */
+function render(){
+  renderFilters();
+  var sites=effectiveSites();
+  renderSite(sites);
+  if(!sites.length){
+    var msg='<div class="empty">No data for this filter.</div>';
+    el('kpis').innerHTML=''; el('flow').innerHTML=msg; el('eq').innerHTML='';
+    el('hourly').innerHTML=msg; el('trend').innerHTML=msg; el('mini').innerHTML='';
+    return;
+  }
+  var ts=todaySeries(sites), t=sum(ts);
+  renderKpis(t);
+  renderFlow(t,ts[ts.length-1]);
+  renderHourly(ts);
+  renderTrend(trendSeries(sites));
+}
+
+el('filters').addEventListener('click',function(ev){
+  var b=ev.target.closest('button'); if(!b) return;
+  if(b.dataset.clear){ state[b.dataset.clear].clear(); render(); return; }
+  if(b.dataset.g){
+    var set=state[b.dataset.g], v=b.dataset.v;
+    if(set.has(v)) set.delete(v); else set.add(v);
+    render();
+  }
+});
+render();
+})();
+</script>
+
+</body></html>

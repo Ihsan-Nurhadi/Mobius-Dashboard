@@ -1,0 +1,52 @@
+services:
+  mobius_backend:
+    container_name: mobius_backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - DJANGO_DEBUG=False
+      - DJANGO_SECRET_KEY=mobius-prod-secret-key-3006-vps-deploy
+      - DJANGO_ALLOWED_HOSTS=110.232.92.134,localhost,127.0.0.1,mobius_backend,mobius_nginx
+      - DB_DIR=/app/data
+    volumes:
+      - mobius_db:/app/data
+      - mobius_static:/app/staticfiles
+    networks:
+      - mobius_network
+
+  mobius_frontend:
+    container_name: mobius_frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    networks:
+      - mobius_network
+
+  mobius_nginx:
+    container_name: mobius_nginx
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "3006:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - mobius_static:/var/www/static:ro
+    depends_on:
+      - mobius_backend
+      - mobius_frontend
+    networks:
+      - mobius_network
+
+volumes:
+  mobius_db:
+    name: mobius_db_data
+  mobius_static:
+    name: mobius_static_data
+
+networks:
+  mobius_network:
+    name: mobius_network
+    driver: bridge

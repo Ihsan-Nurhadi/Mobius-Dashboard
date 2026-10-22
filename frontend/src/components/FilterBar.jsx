@@ -43,6 +43,7 @@ export default function FilterBar({
     <header className="filter-bar">
       <div className="filter-title">
         <span className="filter-brand">MOBIUS</span>
+        <span className="filter-tag">DMT &bull; Telkomsel</span>
         <span className="filter-count">{count} Site</span>
       </div>
 

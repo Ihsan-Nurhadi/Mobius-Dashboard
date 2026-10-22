@@ -73,8 +73,8 @@ export default function MapPage() {
               center={[s.latitude, s.longitude]}
               radius={isSelected ? 11 : 8}
               pathOptions={{
-                color: "#ffffff",
-                weight: isSelected ? 3 : 2,
+                color: isSelected ? "#c5192d" : "#ffffff",
+                weight: isSelected ? 3.5 : 2,
                 fillColor: STATUS_COLOR[s.status] || "#5b727c",
                 fillOpacity: 1,
               }}

@@ -110,7 +110,9 @@ export default function SitePage() {
         <div className="strip-item">
           <dt>Tenant</dt>
           <dd>
-            <span className="pill tenant">{site.tenant}</span>
+            <span className={`pill tenant ${site.tenant === "Tsel" ? "pill-tsel" : ""}`}>
+              {site.tenant}
+            </span>
           </dd>
         </div>
         <div className="strip-item">

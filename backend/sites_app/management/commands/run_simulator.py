@@ -100,12 +100,22 @@ class Command(BaseCommand):
             sites = list(Site.objects.all())
 
             if not sites:
-                self.stdout.write(self.style.WARNING("No sites found in database. Waiting..."))
-            else:
-                total_created = 0
-                for site in sites:
-                    count = sync_site_readings(site, now)
-                    total_created += count
+                self.stdout.write(
+                    self.style.WARNING("No sites found in database. Automatically seeding demo sites...")
+                )
+                try:
+                    from django.core.management import call_command
+                    call_command("seed_demo")
+                    sites = list(Site.objects.all())
+                except Exception as e:
+                    self.stdout.write(self.style.ERROR(f"Seeding error: {e}. Retrying in 5 seconds..."))
+                    time.sleep(5)
+                    continue
+
+            total_created = 0
+            for site in sites:
+                count = sync_site_readings(site, now)
+                total_created += count
 
                 now_str = now.strftime("%Y-%m-%d %H:%M:%S")
                 if total_created > 0:

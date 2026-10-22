@@ -8,6 +8,9 @@ mkdir -p "$TARGET_DB_DIR"
 echo "Applying database migrations..."
 python manage.py migrate --noinput
 
+echo "Checking / seeding demo data..."
+python manage.py seed_demo
+
 # If specific command passed to container (e.g. run_simulator)
 if [ $# -gt 0 ]; then
     echo "Executing custom container command: $@"
@@ -17,9 +20,6 @@ fi
 # Default command: Web backend with Gunicorn
 echo "Collecting static files..."
 python manage.py collectstatic --noinput
-
-echo "Checking / seeding demo data..."
-python manage.py seed_demo
 
 echo "Starting Gunicorn server on 0.0.0.0:8000..."
 exec gunicorn config.wsgi:application \

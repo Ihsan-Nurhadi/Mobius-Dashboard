@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CircleMarker, MapContainer, TileLayer, useMap } from "react-leaflet";
+import { CircleMarker, MapContainer, TileLayer, ZoomControl, useMap } from "react-leaflet";
 import { useQuery } from "@tanstack/react-query";
 import { getSites } from "../api";
 import FilterBar from "../components/FilterBar";
@@ -55,13 +55,15 @@ export default function MapPage() {
         center={[-6.9, 108.5]}
         zoom={8}
         className="map-container"
-        zoomControl={true}
+        zoomControl={false}
       >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           maxZoom={19}
         />
+
+        <ZoomControl position="bottomright" />
 
         <BoundsManager sites={sites} />
 

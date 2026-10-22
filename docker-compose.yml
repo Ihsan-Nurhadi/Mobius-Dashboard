@@ -16,6 +16,26 @@ services:
     networks:
       - mobius_network
 
+  mobius_simulator:
+    container_name: mobius_simulator
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: ["python", "manage.py", "run_simulator", "--interval", "300"]
+    restart: unless-stopped
+    environment:
+      - DJANGO_DEBUG=False
+      - DJANGO_SECRET_KEY=mobius-prod-secret-key-3006-vps-deploy
+      - DJANGO_ALLOWED_HOSTS=110.232.92.134,localhost,127.0.0.1,mobius_backend,mobius_nginx
+      - DB_DIR=/app/data
+      - SIMULATOR_INTERVAL_SECONDS=300
+    volumes:
+      - mobius_db:/app/data
+    depends_on:
+      - mobius_backend
+    networks:
+      - mobius_network
+
   mobius_frontend:
     container_name: mobius_frontend
     build:

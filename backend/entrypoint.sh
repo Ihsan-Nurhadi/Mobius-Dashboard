@@ -8,6 +8,13 @@ mkdir -p "$TARGET_DB_DIR"
 echo "Applying database migrations..."
 python manage.py migrate --noinput
 
+# If specific command passed to container (e.g. run_simulator)
+if [ $# -gt 0 ]; then
+    echo "Executing custom container command: $@"
+    exec "$@"
+fi
+
+# Default command: Web backend with Gunicorn
 echo "Collecting static files..."
 python manage.py collectstatic --noinput
 

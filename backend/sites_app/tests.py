@@ -124,3 +124,17 @@ class MobiusApiTests(TestCase):
 
         resp_404 = self.client.get("/api/sites/NONEXISTENT/summary/")
         self.assertEqual(resp_404.status_code, 404)
+
+    def test_simulator_sync_readings(self):
+        from .management.commands.run_simulator import sync_site_readings
+
+        initial_count = self.site_bks.readings.count()
+        self.assertEqual(initial_count, 0)
+
+        created = sync_site_readings(self.site_bks)
+        self.assertGreater(created, 0)
+        self.assertEqual(self.site_bks.readings.count(), created)
+
+        second_run = sync_site_readings(self.site_bks)
+        self.assertEqual(second_run, 0)
+

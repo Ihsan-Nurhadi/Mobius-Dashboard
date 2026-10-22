@@ -1,0 +1,16 @@
+[Unit]
+Description=Mobius Data Simulator Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/path/to/mobius-dashboard/backend
+ExecStart=/path/to/mobius-dashboard/.venv/bin/python manage.py run_simulator --interval 300
+Restart=always
+RestartSec=10
+Environment="PYTHONUNBUFFERED=1"
+Environment="DJANGO_SETTINGS_MODULE=config.settings"
+
+[Install]
+WantedBy=multi-user.target

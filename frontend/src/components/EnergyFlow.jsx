@@ -98,7 +98,7 @@ export default function EnergyFlow({ today }) {
               </text>
             </g>
 
-            {/* Node 2: MOBIUS */}
+            {/* Node 2: POC */}
             <g transform="translate(135, 12)">
               <rect
                 width="70"
@@ -117,7 +117,7 @@ export default function EnergyFlow({ today }) {
                 fontSize="11"
                 fontFamily="var(--font-display)"
               >
-                MOBIUS
+                POC
               </text>
               <text
                 x="35"
@@ -204,7 +204,7 @@ export default function EnergyFlow({ today }) {
               fontSize="9.5"
               fontFamily="var(--font-body)"
             >
-              Mobius Contribution: {pct(today.contribution_pct)}
+              PoC Contribution: {pct(today.contribution_pct)}
             </text>
           </svg>
         </div>
@@ -216,7 +216,7 @@ export default function EnergyFlow({ today }) {
             <br />
             <b className="c-load">Load {num(latest.load_kwh)} kW</b> ={" "}
             <span className="c-pln">PLN {num(latest.pln_kwh)} kW</span> +{" "}
-            <span className="c-mob">Mobius {num(latest.mobius_kwh)} kW</span>
+            <span className="c-mob">PoC {num(latest.mobius_kwh)} kW</span>
           </div>
         ) : (
           <div className="flow-equation">
@@ -224,7 +224,7 @@ export default function EnergyFlow({ today }) {
             <br />
             <b className="c-load">Load {num(today.load_kwh)} kWh</b> ={" "}
             <span className="c-pln">PLN {num(today.pln_kwh)} kWh</span> +{" "}
-            <span className="c-mob">Mobius {num(today.mobius_kwh)} kWh</span>
+            <span className="c-mob">PoC {num(today.mobius_kwh)} kWh</span>
           </div>
         )}
       </div>

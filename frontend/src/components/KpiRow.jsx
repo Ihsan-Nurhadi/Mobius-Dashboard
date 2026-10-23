@@ -6,7 +6,7 @@ export default function KpiRow({ today }) {
   return (
     <section className="kpi-row" aria-label="Key Performance Indicators Today">
       <div className="kpi-box">
-        <div className="kpi-box-label">Mobius Energy Today</div>
+        <div className="kpi-box-label">PoC Energy Today</div>
         <div className="kpi-box-value c-mob">
           {num(today.mobius_kwh)} <small>kWh</small>
         </div>
@@ -27,7 +27,7 @@ export default function KpiRow({ today }) {
       </div>
 
       <div className="kpi-box">
-        <div className="kpi-box-label">Mobius Contribution</div>
+        <div className="kpi-box-label">PoC Contribution</div>
         <div className="kpi-box-value c-brand">
           {pct(today.contribution_pct)}
         </div>

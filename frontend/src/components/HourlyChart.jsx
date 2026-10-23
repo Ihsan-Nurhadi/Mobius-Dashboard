@@ -69,7 +69,7 @@ export default function HourlyChart({ data, isLoading }) {
             className="chart-legend-line"
             style={{ backgroundColor: "var(--mob)" }}
           ></span>
-          <span>Mobius</span>
+          <span>PoC</span>
         </div>
       </div>
 
@@ -119,7 +119,7 @@ export default function HourlyChart({ data, isLoading }) {
               <Line
                 type="monotone"
                 dataKey="mobius_kwh"
-                name="Mobius"
+                name="PoC"
                 stroke="var(--mob)"
                 strokeWidth={2}
                 dot={false}

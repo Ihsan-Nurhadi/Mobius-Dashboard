@@ -42,7 +42,7 @@ export default function SiteCard({ code, onClose }) {
 
           <dl className="kpi-grid">
             <div className="kpi-item">
-              <dt>Mobius Energy</dt>
+              <dt>PoC Energy</dt>
               <dd className="c-mob">{num(data.today.mobius_kwh)} kWh</dd>
             </div>
             <div className="kpi-item">
@@ -54,7 +54,7 @@ export default function SiteCard({ code, onClose }) {
               <dd className="c-load">{num(data.today.load_kwh)} kWh</dd>
             </div>
             <div className="kpi-item">
-              <dt>Mobius Contribution</dt>
+              <dt>PoC Contribution</dt>
               <dd className="c-brand">{pct(data.today.contribution_pct)}</dd>
             </div>
             <div className="kpi-item">
@@ -64,7 +64,7 @@ export default function SiteCard({ code, onClose }) {
           </dl>
 
           <p className="flow-line">
-            PLN <b>{num(data.today.pln_kwh)}</b> → Mobius <b>+{num(data.today.mobius_kwh)}</b> → Load <b>{num(data.today.load_kwh)} kWh</b>
+            PLN <b>{num(data.today.pln_kwh)}</b> → PoC <b>+{num(data.today.mobius_kwh)}</b> → Load <b>{num(data.today.load_kwh)} kWh</b>
           </p>
 
           <Link className="btn" to={`/sites/${code}`}>

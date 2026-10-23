@@ -36,7 +36,7 @@ export default function SiteDetail({ site }) {
       </div>
 
       <div className="field-pair">
-        <dt>Mobius Unit</dt>
+        <dt>PoC Unit</dt>
         <dd>{site.mobius_unit || "-"}</dd>
       </div>
 

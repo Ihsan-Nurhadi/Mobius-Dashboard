@@ -36,7 +36,7 @@ function CustomTrendTooltip({ active, payload, label }) {
           PLN: <b>{num(dataItem.pln_kwh)} kWh</b>
         </div>
         <div style={{ color: "var(--mob)", fontVariantNumeric: "tabular-nums" }}>
-          Mobius: <b>{num(dataItem.mobius_kwh)} kWh</b>
+          PoC: <b>{num(dataItem.mobius_kwh)} kWh</b>
         </div>
         <div style={{ color: "var(--brand)", fontVariantNumeric: "tabular-nums" }}>
           Kontribusi: <b>{pct(dataItem.contribution_pct)}</b>
@@ -109,7 +109,7 @@ export default function TrendChart({ data, isLoading }) {
             Total PLN: <b>{num(totals.pln)} kWh</b>
           </div>
           <div>
-            Total Mobius: <b className="c-mob">{num(totals.mobius)} kWh</b>
+            Total PoC: <b className="c-mob">{num(totals.mobius)} kWh</b>
           </div>
           <div>
             Avg. Contribution: <b className="c-brand">{pct(totals.avgContrib)}</b>
@@ -140,7 +140,7 @@ export default function TrendChart({ data, isLoading }) {
             className="chart-legend-line"
             style={{ backgroundColor: "var(--mob)" }}
           ></span>
-          <span>Mobius (kWh)</span>
+          <span>PoC (kWh)</span>
         </div>
         <div className="chart-legend-item">
           <span
@@ -153,7 +153,7 @@ export default function TrendChart({ data, isLoading }) {
               borderRadius: "2px",
             }}
           ></span>
-          <span>Mobius Contribution (%)</span>
+          <span>PoC Contribution (%)</span>
         </div>
       </div>
 
@@ -237,7 +237,7 @@ export default function TrendChart({ data, isLoading }) {
                 yAxisId="left"
                 type="monotone"
                 dataKey="mobius_kwh"
-                name="Mobius"
+                name="PoC"
                 stroke="var(--mob)"
                 strokeWidth={2}
                 dot={false}
@@ -266,7 +266,7 @@ export default function TrendChart({ data, isLoading }) {
               <tr>
                 <td>
                   <span className="c-mob" style={{ fontWeight: 600 }}>
-                    Mobius Contr.
+                    PoC Contr.
                   </span>
                 </td>
                 {chartData.map((d) => (
@@ -279,7 +279,7 @@ export default function TrendChart({ data, isLoading }) {
               {/* Row 2: MOBIUS (kWh) */}
               <tr>
                 <td>
-                  <span className="c-mob">MOBIUS (kWh)</span>
+                  <span className="c-mob">PoC (kWh)</span>
                 </td>
                 {chartData.map((d) => (
                   <td key={d.date} className={isDipDay(d) ? "c-load" : ""}>

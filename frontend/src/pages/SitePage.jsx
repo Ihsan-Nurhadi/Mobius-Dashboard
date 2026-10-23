@@ -124,7 +124,7 @@ export default function SitePage() {
           </dd>
         </div>
         <div className="strip-item">
-          <dt>Mobius Unit</dt>
+          <dt>PoC Unit</dt>
           <dd>{site.mobius_unit || "-"}</dd>
         </div>
         <div className="strip-item">

@@ -8,7 +8,7 @@ services:
     environment:
       - DJANGO_DEBUG=False
       - DJANGO_SECRET_KEY=mobius-prod-secret-key-3006-vps-deploy
-      - DJANGO_ALLOWED_HOSTS=110.232.92.134,localhost,127.0.0.1,mobius_backend,mobius_nginx
+      - DJANGO_ALLOWED_HOSTS=*
       - DB_DIR=/app/data
     volumes:
       - mobius_db:/app/data
@@ -26,7 +26,7 @@ services:
     environment:
       - DJANGO_DEBUG=False
       - DJANGO_SECRET_KEY=mobius-prod-secret-key-3006-vps-deploy
-      - DJANGO_ALLOWED_HOSTS=110.232.92.134,localhost,127.0.0.1,mobius_backend,mobius_nginx
+      - DJANGO_ALLOWED_HOSTS=*
       - DB_DIR=/app/data
       - SIMULATOR_INTERVAL_SECONDS=300
     volumes:

@@ -30,8 +30,18 @@ const request = async (url, options = {}) => {
   }
 
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    const message = errorData.detail || `API error: ${response.status} ${response.statusText}`;
+    let errorDetail = "";
+    try {
+      const errorData = await response.json();
+      errorDetail = errorData.detail || (typeof errorData === "string" ? errorData : "");
+    } catch {
+      // Non-JSON response (e.g. HTML 400 Bad Request from Django DisallowedHost)
+    }
+    const message =
+      errorDetail ||
+      (response.status === 400
+        ? "API error: 400 Bad Request (Host/IP belum terdaftar di ALLOWED_HOSTS backend)"
+        : `API error: ${response.status} ${response.statusText}`);
     throw new Error(message);
   }
 

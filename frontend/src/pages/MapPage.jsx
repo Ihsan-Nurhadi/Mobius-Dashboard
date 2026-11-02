@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { CircleMarker, MapContainer, TileLayer, ZoomControl, useMap } from "react-leaflet";
 import { useQuery } from "@tanstack/react-query";
 import { getSites } from "../api";
+import { useAuth } from "../context/AuthContext";
 import FilterBar from "../components/FilterBar";
 import SiteCard from "../components/SiteCard";
 
@@ -25,13 +26,13 @@ function BoundsManager({ sites }) {
 }
 
 export default function MapPage() {
-  const [tenants, setTenants] = useState([]);
+  const { user } = useAuth();
   const [statuses, setStatuses] = useState([]);
   const [selected, setSelected] = useState(null);
 
   const { data: sites = [], isLoading } = useQuery({
-    queryKey: ["sites", tenants, statuses],
-    queryFn: () => getSites(tenants, statuses),
+    queryKey: ["sites", user?.username, statuses],
+    queryFn: () => getSites(statuses),
   });
 
   // If selected site is filtered out, close the card
@@ -44,8 +45,6 @@ export default function MapPage() {
   return (
     <div className="map-page">
       <FilterBar
-        tenants={tenants}
-        setTenants={setTenants}
         statuses={statuses}
         setStatuses={setStatuses}
         count={sites.length}

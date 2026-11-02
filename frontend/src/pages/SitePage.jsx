@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getDaily, getHourly, getSummary } from "../api";
 import { formatDate, formatTime, num, rp } from "../format";
+import { useAuth } from "../context/AuthContext";
 import EnergyFlow from "../components/EnergyFlow";
 import HourlyChart from "../components/HourlyChart";
 import KpiRow from "../components/KpiRow";
@@ -10,6 +11,7 @@ import TrendChart from "../components/TrendChart";
 
 export default function SitePage() {
   const { code } = useParams();
+  const { user, logout } = useAuth();
 
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem("mobius-theme") || "light";
@@ -29,17 +31,17 @@ export default function SitePage() {
     isLoading: isSummaryLoading,
     isError: isSummaryError,
   } = useQuery({
-    queryKey: ["summary", code],
+    queryKey: ["summary", user?.username, code],
     queryFn: () => getSummary(code),
   });
 
   const { data: hourlyData, isLoading: isHourlyLoading } = useQuery({
-    queryKey: ["hourly", code],
+    queryKey: ["hourly", user?.username, code],
     queryFn: () => getHourly(code),
   });
 
   const { data: dailyData, isLoading: isDailyLoading } = useQuery({
-    queryKey: ["daily", code],
+    queryKey: ["daily", user?.username, code],
     queryFn: () => getDaily(code, 30),
   });
 
@@ -55,7 +57,7 @@ export default function SitePage() {
     return (
       <div className="site-page">
         <div className="state-box error-text">
-          Gagal memuat data site {code}.{" "}
+          Gagal memuat data site {code} (atau site berada di luar wilayah Anda).{" "}
           <Link to="/" style={{ marginLeft: "8px", textDecoration: "underline" }}>
             Kembali ke Peta
           </Link>
@@ -78,18 +80,33 @@ export default function SitePage() {
           <div className="site-page-title-box">
             <h1>Site {site.code}</h1>
             <p>
-              {site.area} &bull; Tenant: <b>{site.tenant}</b>
+              {site.area} &bull; Wilayah: <b>{site.region}</b>
             </p>
           </div>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <div className="cutoff-badge">
             Update Cut Off:
             <b>
               {formatDate(today.cutoff)} | {formatTime(today.cutoff)}
             </b>
           </div>
+
+          <div className="user-action-group">
+            <span className="user-pill" title={`Login sebagai ${user?.username || "Pengguna"}`}>
+              👤 {user?.username}
+            </span>
+            <button
+              type="button"
+              className="logout-btn"
+              onClick={logout}
+              title="Keluar dari akun"
+            >
+              Logout
+            </button>
+          </div>
+
           <button
             type="button"
             className="theme-toggle-btn"
@@ -108,10 +125,10 @@ export default function SitePage() {
           <dd>{site.code}</dd>
         </div>
         <div className="strip-item">
-          <dt>Tenant</dt>
+          <dt>Wilayah</dt>
           <dd>
-            <span className={`pill tenant ${site.tenant === "Tsel" ? "pill-tsel" : ""}`}>
-              {site.tenant}
+            <span className="pill region-pill">
+              {site.region || "-"}
             </span>
           </dd>
         </div>

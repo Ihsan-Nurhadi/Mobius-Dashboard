@@ -13,10 +13,10 @@ export default function SiteDetail({ site }) {
       </div>
 
       <div className="field-pair">
-        <dt>Tenant</dt>
+        <dt>Wilayah</dt>
         <dd>
-          <span className={`pill tenant ${site.tenant === "Tsel" ? "pill-tsel" : ""}`}>
-            {site.tenant}
+          <span className="pill region-pill">
+            {site.region || "-"}
           </span>
         </dd>
       </div>

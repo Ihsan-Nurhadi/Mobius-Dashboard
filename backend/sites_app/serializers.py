@@ -1,23 +1,41 @@
 from rest_framework import serializers
-from .models import Site
+from .models import Site, Region, UserProfile
+
+
+class RegionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Region
+        fields = ["code", "name"]
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source="user.username", read_only=True)
+    region = RegionSerializer(read_only=True)
+
+    class Meta:
+        model = UserProfile
+        fields = ["username", "role", "region"]
 
 
 class SiteListSerializer(serializers.ModelSerializer):
-    tenant = serializers.CharField(source="tenant.name")
+    region = serializers.CharField(source="region.name")
+    region_code = serializers.CharField(source="region.code")
 
     class Meta:
         model = Site
-        fields = ["code", "tenant", "status", "area", "latitude", "longitude"]
+        fields = ["code", "region", "region_code", "status", "area", "latitude", "longitude"]
 
 
 class SiteDetailSerializer(serializers.ModelSerializer):
-    tenant = serializers.CharField(source="tenant.name")
+    region = serializers.CharField(source="region.name")
+    region_code = serializers.CharField(source="region.code")
 
     class Meta:
         model = Site
         fields = [
             "code",
-            "tenant",
+            "region",
+            "region_code",
             "status",
             "area",
             "latitude",

@@ -1,11 +1,30 @@
+from django.contrib.auth.models import User
 from django.db import models
 
 
-class Tenant(models.Model):
-    name = models.CharField(max_length=50, unique=True)   # IOH, Tsel, XLSMA
+class Region(models.Model):
+    code = models.CharField(max_length=50, unique=True)   # JABODETABEK, JABAR, JATENG
+    name = models.CharField(max_length=100)               # Jabodetabek, Jawa Barat, Jawa Tengah
+
+    class Meta:
+        ordering = ["name"]
 
     def __str__(self):
         return self.name
+
+
+class UserProfile(models.Model):
+    class Role(models.TextChoices):
+        REGIONAL_USER = "regional_user", "Regional User"
+        NATIONAL_ADMIN = "national_admin", "National Admin"
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
+    region = models.ForeignKey(Region, on_delete=models.SET_NULL, null=True, blank=True, related_name="users")
+    role = models.CharField(max_length=20, choices=Role.choices, default=Role.REGIONAL_USER)
+
+    def __str__(self):
+        region_label = self.region.name if self.region else "Nasional"
+        return f"{self.user.username} - {region_label} ({self.role})"
 
 
 class Site(models.Model):
@@ -14,7 +33,7 @@ class Site(models.Model):
         ON_PROGRESS = "On Progress", "On Progress"
 
     code = models.CharField(max_length=20, unique=True)             # CLG002
-    tenant = models.ForeignKey(Tenant, on_delete=models.PROTECT, related_name="sites")
+    region = models.ForeignKey(Region, on_delete=models.PROTECT, related_name="sites", null=True, blank=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.ON_PROGRESS)
     area = models.CharField(max_length=120)                         # "Cilegon, Banten"
     latitude = models.FloatField()

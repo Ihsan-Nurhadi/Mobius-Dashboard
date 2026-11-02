@@ -1,18 +1,8 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { getTenants } from "../api";
+import { useAuth } from "../context/AuthContext";
 
-export default function FilterBar({
-  tenants,
-  setTenants,
-  statuses,
-  setStatuses,
-  count,
-}) {
-  const { data: allTenants = [] } = useQuery({
-    queryKey: ["tenants"],
-    queryFn: getTenants,
-  });
+export default function FilterBar({ statuses, setStatuses, count }) {
+  const { user, logout } = useAuth();
 
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem("mobius-theme") || "light";
@@ -27,46 +17,25 @@ export default function FilterBar({
     setTheme((prev) => (prev === "dark" ? "light" : "dark"));
   };
 
-  const toggleTenant = (t) => {
-    setTenants((prev) =>
-      prev.includes(t) ? prev.filter((item) => item !== t) : [...prev, t]
-    );
-  };
-
   const toggleStatus = (s) => {
     setStatuses((prev) =>
       prev.includes(s) ? prev.filter((item) => item !== s) : [...prev, s]
     );
   };
 
+  const regionName = user?.region?.name || "Nasional";
+
   return (
     <header className="filter-bar">
       <div className="filter-title">
         <span className="filter-brand">POC DASHBOARD</span>
-        <span className="filter-tag">DMT &bull; Telkomsel</span>
+        <span className="region-indicator-badge" title={`Wilayah Kerja: ${regionName}`}>
+          Wilayah: <b>{regionName}</b>
+        </span>
         <span className="filter-count">{count} Site</span>
       </div>
 
       <div className="filter-groups">
-        {/* Tenant Filter */}
-        <div className="filter-group">
-          <span className="filter-label">Tenant:</span>
-          {allTenants.map((t) => {
-            const active = tenants.includes(t);
-            return (
-              <button
-                key={t}
-                type="button"
-                className={`chip ${active ? "active" : ""}`}
-                onClick={() => toggleTenant(t)}
-                aria-pressed={active}
-              >
-                {t}
-              </button>
-            );
-          })}
-        </div>
-
         {/* Status Filter */}
         <div className="filter-group">
           <span className="filter-label">Status:</span>
@@ -84,6 +53,22 @@ export default function FilterBar({
               </button>
             );
           })}
+        </div>
+
+        {/* User Info & Actions */}
+        <div className="user-action-group">
+          <span className="user-pill" title={`Login sebagai ${user?.username || "Pengguna"}`}>
+            👤 {user?.username}
+          </span>
+
+          <button
+            type="button"
+            className="logout-btn"
+            onClick={logout}
+            title="Keluar dari akun"
+          >
+            Logout
+          </button>
         </div>
 
         {/* Theme Toggle */}

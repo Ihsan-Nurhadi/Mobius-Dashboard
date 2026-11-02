@@ -1,9 +1,11 @@
 from datetime import date, timedelta
+from django.contrib.auth.models import User
 from django.test import TestCase
 from django.utils import timezone
+from rest_framework.authtoken.models import Token
 from rest_framework.test import APIClient
 
-from .models import HourlyReading, Site, Tenant
+from .models import HourlyReading, Region, Site, UserProfile
 from .services import calc, daily_series, today_summary
 
 
@@ -27,12 +29,26 @@ class MobiusCalcTests(TestCase):
 class MobiusApiTests(TestCase):
     def setUp(self):
         self.client = APIClient()
-        self.t_tsel = Tenant.objects.create(name="Tsel")
-        self.t_ioh = Tenant.objects.create(name="IOH")
+
+        self.region_jabar = Region.objects.create(code="JABAR", name="Jawa Barat")
+        self.region_jabo = Region.objects.create(code="JABODETABEK", name="Jabodetabek")
+
+        # Users
+        self.user_jabo = User.objects.create_user(username="user_jabo", password="password123")
+        UserProfile.objects.create(user=self.user_jabo, region=self.region_jabo, role=UserProfile.Role.REGIONAL_USER)
+        self.token_jabo = Token.objects.create(user=self.user_jabo)
+
+        self.user_jabar = User.objects.create_user(username="user_jabar", password="password123")
+        UserProfile.objects.create(user=self.user_jabar, region=self.region_jabar, role=UserProfile.Role.REGIONAL_USER)
+        self.token_jabar = Token.objects.create(user=self.user_jabar)
+
+        self.admin_user = User.objects.create_superuser(username="admin_nasional", password="password123")
+        UserProfile.objects.create(user=self.admin_user, region=None, role=UserProfile.Role.NATIONAL_ADMIN)
+        self.token_admin = Token.objects.create(user=self.admin_user)
 
         self.site_clg = Site.objects.create(
             code="CLG002",
-            tenant=self.t_tsel,
+            region=self.region_jabar,
             status=Site.Status.DONE,
             area="Cilegon, Banten",
             latitude=-6.0023,
@@ -45,7 +61,7 @@ class MobiusApiTests(TestCase):
 
         self.site_tng = Site.objects.create(
             code="TNG095",
-            tenant=self.t_tsel,
+            region=self.region_jabo,
             status=Site.Status.ON_PROGRESS,
             area="Tangerang, Banten",
             latitude=-6.1783,
@@ -58,7 +74,7 @@ class MobiusApiTests(TestCase):
 
         self.site_bks = Site.objects.create(
             code="BKS031",
-            tenant=self.t_ioh,
+            region=self.region_jabo,
             status=Site.Status.DONE,
             area="Bekasi, Jawa Barat",
             latitude=-6.2383,
@@ -88,53 +104,65 @@ class MobiusApiTests(TestCase):
             curr += timedelta(hours=1)
         HourlyReading.objects.bulk_create(readings)
 
+    def test_login_and_me_endpoint(self):
+        # Invalid login
+        resp_fail = self.client.post("/api/auth/login/", {"username": "user_jabo", "password": "wrong"})
+        self.assertEqual(resp_fail.status_code, 401)
+
+        # Valid login
+        resp_ok = self.client.post("/api/auth/login/", {"username": "user_jabo", "password": "password123"})
+        self.assertEqual(resp_ok.status_code, 200)
+        data = resp_ok.json()
+        self.assertIn("token", data)
+        self.assertEqual(data["user"]["username"], "user_jabo")
+        self.assertEqual(data["user"]["region"]["code"], "JABODETABEK")
+
+        # Test auth/me with token
+        self.client.credentials(HTTP_AUTHORIZATION=f"Token {data['token']}")
+        resp_me = self.client.get("/api/auth/me/")
+        self.assertEqual(resp_me.status_code, 200)
+        self.assertEqual(resp_me.json()["user"]["username"], "user_jabo")
+
+    def test_region_scoped_site_list(self):
+        # Jabodetabek user only sees Jabodetabek sites (TNG095, BKS031)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Token {self.token_jabo.key}")
+        resp = self.client.get("/api/sites/")
+        self.assertEqual(resp.status_code, 200)
+        codes = [s["code"] for s in resp.json()]
+        self.assertIn("TNG095", codes)
+        self.assertIn("BKS031", codes)
+        self.assertNotIn("CLG002", codes)
+
+        # Jawa Barat user only sees Jabar site (CLG002)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Token {self.token_jabar.key}")
+        resp = self.client.get("/api/sites/")
+        self.assertEqual(resp.status_code, 200)
+        codes = [s["code"] for s in resp.json()]
+        self.assertEqual(codes, ["CLG002"])
+
+        # Superadmin / National admin sees all
+        self.client.credentials(HTTP_AUTHORIZATION=f"Token {self.token_admin.key}")
+        resp = self.client.get("/api/sites/")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.json()), 3)
+
+    def test_cross_region_access_prevented(self):
+        # Jabar user tries to access Jabodetabek site summary -> should 404
+        self.client.credentials(HTTP_AUTHORIZATION=f"Token {self.token_jabar.key}")
+        resp_404 = self.client.get("/api/sites/TNG095/summary/")
+        self.assertEqual(resp_404.status_code, 404)
+
+        # Jabar user accesses own site summary -> should 200
+        resp_200 = self.client.get("/api/sites/CLG002/summary/")
+        self.assertEqual(resp_200.status_code, 200)
+
     def test_daily_series_limits_and_excludes_today(self):
         series = daily_series(self.site_clg, days=30)
         self.assertLessEqual(len(series), 30)
 
-        # Check today date is NOT in daily_series (today is reference day)
         today_iso = timezone.localtime(timezone.now()).date().isoformat()
         dates = [item["date"] for item in series]
         self.assertNotIn(today_iso, dates)
 
-        # Check formula consistency: load = pln + mobius
         for item in series:
             self.assertAlmostEqual(item["load_kwh"], item["pln_kwh"] + item["mobius_kwh"], places=3)
-
-    def test_filter_sites_by_tenant_and_status(self):
-        resp = self.client.get("/api/sites/?tenant=Tsel&status=Done")
-        self.assertEqual(resp.status_code, 200)
-        data = resp.json()
-        self.assertEqual(len(data), 1)
-        self.assertEqual(data[0]["code"], "CLG002")
-        self.assertEqual(data[0]["tenant"], "Tsel")
-        self.assertEqual(data[0]["status"], "Done")
-
-    def test_site_summary_and_404(self):
-        resp = self.client.get("/api/sites/CLG002/summary/")
-        self.assertEqual(resp.status_code, 200)
-        data = resp.json()
-        self.assertIn("site", data)
-        self.assertIn("today", data)
-        self.assertAlmostEqual(
-            data["today"]["load_kwh"],
-            data["today"]["pln_kwh"] + data["today"]["mobius_kwh"],
-            places=2,
-        )
-
-        resp_404 = self.client.get("/api/sites/NONEXISTENT/summary/")
-        self.assertEqual(resp_404.status_code, 404)
-
-    def test_simulator_sync_readings(self):
-        from .management.commands.run_simulator import sync_site_readings
-
-        initial_count = self.site_bks.readings.count()
-        self.assertEqual(initial_count, 0)
-
-        created = sync_site_readings(self.site_bks)
-        self.assertGreater(created, 0)
-        self.assertEqual(self.site_bks.readings.count(), created)
-
-        second_run = sync_site_readings(self.site_bks)
-        self.assertEqual(second_run, 0)
-

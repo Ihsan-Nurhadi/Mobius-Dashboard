@@ -50,7 +50,7 @@ function CustomTrendTooltip({ active, payload, label }) {
   return null;
 }
 
-export default function TrendChart({ data, isLoading }) {
+export default function TrendChart({ data, isLoading, onExportClick }) {
   const chartData = useMemo(() => {
     if (!data || !data.length) return [];
     return data.map((d) => {
@@ -98,7 +98,19 @@ export default function TrendChart({ data, isLoading }) {
 
   return (
     <div className="card trend-section">
-      <div className="card-title">30-Day Performance Trend</div>
+      <div className="trend-header-row">
+        <div className="card-title">Performance Test Trend</div>
+        {onExportClick && (
+          <button
+            type="button"
+            className="btn-export-excel"
+            onClick={onExportClick}
+            title="Export data performance test ke Excel"
+          >
+            📥 Export Data Excel
+          </button>
+        )}
+      </div>
 
       {totals && (
         <div className="trend-summary-row">

@@ -8,10 +8,12 @@ import EnergyFlow from "../components/EnergyFlow";
 import HourlyChart from "../components/HourlyChart";
 import KpiRow from "../components/KpiRow";
 import TrendChart from "../components/TrendChart";
+import ExportModal from "../components/ExportModal";
 
 export default function SitePage() {
   const { code } = useParams();
   const { user, logout } = useAuth();
+  const [isExportOpen, setIsExportOpen] = useState(false);
 
   const [theme, setTheme] = useState(() => {
     return localStorage.getItem("mobius-theme") || "light";
@@ -86,6 +88,15 @@ export default function SitePage() {
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <button
+            type="button"
+            className="btn-export-excel"
+            onClick={() => setIsExportOpen(true)}
+            title="Export data performance test ke Excel"
+          >
+            📥 Export Excel
+          </button>
+
           <div className="cutoff-badge">
             Update Cut Off:
             <b>
@@ -168,7 +179,19 @@ export default function SitePage() {
       </section>
 
       {/* 5. 30-Day Trend Chart & Table */}
-      <TrendChart data={dailyData} isLoading={isDailyLoading} />
+      <TrendChart
+        data={dailyData}
+        isLoading={isDailyLoading}
+        onExportClick={() => setIsExportOpen(true)}
+      />
+
+      {/* 6. Export Performance Modal */}
+      <ExportModal
+        isOpen={isExportOpen}
+        onClose={() => setIsExportOpen(false)}
+        siteCode={site.code}
+        defaultEndDate={today.cutoff}
+      />
     </div>
   );
 }

@@ -166,3 +166,20 @@ class MobiusApiTests(TestCase):
 
         for item in series:
             self.assertAlmostEqual(item["load_kwh"], item["pln_kwh"] + item["mobius_kwh"], places=3)
+
+
+    def test_export_performance_endpoint(self):
+        # Authenticated user in Jabar can export CLG002
+        self.client.credentials(HTTP_AUTHORIZATION=f"Token {self.token_jabar.key}")
+        resp = self.client.get("/api/sites/CLG002/export-performance/?start_date=2026-03-01&end_date=2026-03-31")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(
+            resp.headers["Content-Type"],
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        self.assertIn("attachment; filename=", resp.headers["Content-Disposition"])
+        self.assertGreater(len(resp.content), 1000)
+
+        # Cross-region access prevented (Jabar user cannot export Jabodetabek site)
+        resp_blocked = self.client.get("/api/sites/TNG095/export-performance/")
+        self.assertEqual(resp_blocked.status_code, 404)

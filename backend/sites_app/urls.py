@@ -12,4 +12,5 @@ urlpatterns = [
     path("sites/<str:code>/summary/", views.site_summary, name="site_summary"),
     path("sites/<str:code>/hourly/", views.site_hourly, name="site_hourly"),
     path("sites/<str:code>/daily/", views.site_daily, name="site_daily"),
+    path("sites/<str:code>/export-performance/", views.site_export_performance, name="site_export_performance"),
 ]

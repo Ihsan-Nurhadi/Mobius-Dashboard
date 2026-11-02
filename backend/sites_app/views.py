@@ -1,5 +1,6 @@
 from datetime import date
 from django.contrib.auth import authenticate
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.authtoken.models import Token
@@ -9,6 +10,7 @@ from rest_framework.response import Response
 
 from .models import Site, Region, UserProfile
 from .serializers import SiteDetailSerializer, SiteListSerializer, RegionSerializer
+from .exporter import build_performance_excel
 from . import services
 
 
@@ -152,3 +154,41 @@ def site_daily(request, code):
     except (ValueError, TypeError):
         days = 30
     return Response(services.daily_series(site, days))
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def site_export_performance(request, code):
+    """Export performance test data ke Excel (.xlsx) dengan filter range tanggal."""
+    site = get_object_or_404(get_scoped_sites(request.user).select_related("region"), code=code)
+
+    start_date_str = request.query_params.get("start_date")
+    end_date_str = request.query_params.get("end_date")
+
+    parsed_start = None
+    parsed_end = None
+
+    if start_date_str:
+        try:
+            parsed_start = date.fromisoformat(start_date_str)
+        except ValueError:
+            parsed_start = None
+
+    if end_date_str:
+        try:
+            parsed_end = date.fromisoformat(end_date_str)
+        except ValueError:
+            parsed_end = None
+
+    excel_bytes = build_performance_excel(site, start_date=parsed_start, end_date=parsed_end)
+
+    start_label = parsed_start.isoformat() if parsed_start else "start"
+    end_label = parsed_end.isoformat() if parsed_end else "end"
+    filename = f"Performance_Test_{site.code}_{start_label}_to_{end_label}.xlsx"
+
+    response = HttpResponse(
+        excel_bytes,
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
